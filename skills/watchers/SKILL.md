@@ -158,3 +158,16 @@ All three scripts use the same template: load watermark, fetch, diff, save, emit
    a migration. Then verify by *effect*: re-run the exact expression that was
    crashing (`item["key"]`) and confirm it no longer raises.
 
+7. **An overwritten inbox cannot feed a weekly report.** If the daily run
+   rewrites its output and the ledger keeps only titles/decisions, a weekly
+   consumer sees one day. Archive raw items (url, votes/stars, source, ts) to
+   an append file with time-based pruning parsed from JSON — never by string
+   slicing a fixed offset, which silently mis-compares and wipes the archive.
+   Test pruning with one old and one recent synthetic line.
+
+8. **Adding sources grows the run time; re-check the global timeout.** Each
+   new host adds latency and politeness gaps; a whole-run `signal.alarm` sized
+   for the old source count kills the run midway. Keep it below the cron
+   wrapper's own cap. Community sources (Reddit) throttle with 429: give them
+   larger gaps and let the host quarantine skip the rest of that host.
+
