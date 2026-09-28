@@ -247,6 +247,21 @@ supports/contradicts/unrelated, confidence >=0.8 o revision). Encaje: ultimo pas
 antes de publicar en el pipeline editorial LFI. Pendiente de OK del usuario.
 `jev-skill-router.py` existe pero NO esta enganchado al harness (solo a mano).
 
+## Alternativa local Laya (evaluada 27-sep-2026): NO cabe hoy en la RPi
+
+`pip install laya` (0.3.20) + torch 2.14 CPU en venv `~/.hermes/cache/scratch/laya-venv`;
+checkpoints en `~/.cache/huggingface` (english 0,84 GB + multilingual = 1,5 GB).
+Durante la precarga (english 421M + multilingual 322M, fp32) la RAM `available`
+cayo de ~4.400 a 1.134 MB (swap ya en 3,3 GB) -> abortado por el limite de
+1.200 MB antes de terminar de cargar; no se aislo cual de los dos la tumbo. En un
+intento previo (preload=True) ya se vio 1.165 MB. No llego a medirse
+precision ni latencia. Banco listo en `~/.hermes/cache/scratch/laya-bench/bench.py`
+(email 6 casos, gate knowledge 30 titulares, errors.log 30 firmas, Laya vs Jev en vivo).
+Pitfalls: el primer arranque descarga con timeout y deja blobs `*.incomplete`
+huerfanos (borrarlos); pre-descargar con `snapshot_download(allow_patterns=...)` en
+background y medir despues con `HF_HUB_OFFLINE=1`. El checkpoint trae temperaturas
+invalidas (warning: confidence de choice sin calibrar).
+
 ## La doc viva manda
 
 `https://docs.typesafe.ai/llms.txt` es el indice y la fuente de verdad.

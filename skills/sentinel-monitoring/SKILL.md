@@ -63,6 +63,36 @@ Tres invariantes que NO se pueden romper al tocarlo:
 Metodo, pitfalls y matriz de tests: skill `filtro-guard-diagnostico`,
 Regla 19d + `references/triaje-semantico-system-one.md`.
 
+## Resolver un informe del Sentinel ("soluciona esto")
+
+1. **Agrupar por causa raíz, no por línea**: varias firmas suelen ser la misma avería
+   (p.ej. 429 de visión + "no fallback_chain" = una sola). Contar apariciones por día
+   (`grep ... | cut -c1-10 | sort | uniq -c`) para saber si crece, baja o ya pasó.
+2. **Reproducir cada causa en vivo** (curl al endpoint, llamada real al LLM con el mismo
+   `max_tokens`) antes de tocar nada; un log viejo no prueba que siga roto.
+3. **Editar el código que CORRE**: sacar la ruta del proceso vivo (`ps aux | grep gateway`,
+   `cat $(which hermes)`); puede haber otra copia en `~/.local/lib/.../site-packages` que no se usa.
+4. `config.yaml` no se escribe con patch/write_file (lo bloquea el guard): usar
+   `hermes config set clave 'valor-json'`. El aviso "not a recognized config key" puede ser falso:
+   confirmar con `grep` que el código lee esa clave.
+5. Credenciales de un proveedor que no se usa: `hermes auth remove <prov> <n>` (suprime fuentes)
+   en vez de dejar que avise cada pocas horas.
+6. Cambios en config/mem0.json requieren reinicio del gateway: programarlo con
+   `systemd-run --user --on-active=180 ... gateway restart` (nunca reiniciar desde el propio turno).
+7. Parche en el core de Hermes = se pierde al actualizar: hacer backup, probar rama feliz Y de
+   fallo (HERMES_HOME temporal), y decirlo en el informe.
+8. Cambiar el **modelo principal** es decisión del usuario: diagnosticar, recomendar 1 opción, preguntar.
+   Todo lo demás (fallbacks, límites, supresiones) se arregla sin preguntar.
+
+Causas ya vistas y su arreglo:
+- `mem0 ... Error parsing extraction response` = respuesta JSON truncada por `max_tokens`
+  bajo (el modelo razona y gasta tokens): subir `oss.llm.config.max_tokens` en `mem0.json`
+  (12000 verificado con 60 hechos → JSON completo).
+- `Auxiliary vision: ... no fallback_chain` tras 429 de modelos `:free`: añadir al final de
+  `auxiliary.vision.fallback_chain` un modelo de pago barato (gemini-2.5-flash).
+- 429 `captcha_required` del bridge qwen-web: el proveedor principal está caído; el fallback
+  lo tapa pero cada turno paga el error → proponer cambio de principal.
+
 ## Cloudflare Bot Unblock
 
 ```bash
