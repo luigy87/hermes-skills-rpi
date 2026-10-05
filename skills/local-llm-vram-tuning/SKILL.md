@@ -441,17 +441,38 @@ al modelo una lentitud que es del hardware.
 
 ### Que si tiene sentido en la RPi
 
-- **Embeddings**, que son una pasada unica y corta: `nomic-embed-text` (274 MB)
-  y `all-minilm` (45 MB) ya estan instalados y sirven.
+- **Embeddings**, que son una pasada unica y corta. En esta RPi los hace
+  `ollama-embed.service` (unidad de usuario, solo `bge-m3`, 1024 dim) para la
+  memoria mem0/Qdrant: **no se puede parar ni cambiar de modelo sin reindexar**.
+  Los otros modelos de embeddings (`nomic-embed-text`, `all-minilm`) sobraban y
+  se pueden borrar con `ollama rm`.
 - Nada mas. Para chat/crons, la RPi es **cliente de API**, no servidor de
   inferencia.
 
+### Ajustar la RAM del servicio de embeddings (RPi, sin GPU)
+
+Lo que se regula es cuanto tiempo retiene el modelo cargado
+(`OLLAMA_KEEP_ALIVE` en la unidad), no si existe. bge-m3 cargado ocupa ~1,3 GB
+mas ~0,4 GB del servidor. Decidir el valor con datos, no a ojo:
+
+1. Sacar las horas de `POST /api/embed` de `journalctl --user -u ollama-embed`
+   (48 h) y calcular los huecos entre llamadas.
+2. Para cada candidato K: `tiempo_cargado = sum(min(hueco, K))` y
+   `cargas_en_frio = n.o de huecos > K`.
+3. Medir latencia en frio vs caliente: `ollama stop <modelo>` y 3 llamadas
+   seguidas (la primera paga la carga, ~3 s; las siguientes ~0,3-0,6 s).
+
+Elegir el K que libera RAM la mayor parte del dia sin que la primera consulta
+tras un hueco moleste (una memoria conversacional tolera 3 s). Pasar los
+embeddings a una API externa saca el texto de los recuerdos de la maquina:
+solo vale la pena si la RAM aprieta de verdad y el usuario acepta esa fuga.
+
 ### Higiene tras la prueba
 
-Los modelos de prueba se borran (`ollama rm`) y **`ollama serve` se para si no
-estaba corriendo antes**: en la RPi no hay servicio de Ollama activo por
-defecto, y dejarlo vivo retiene RAM sin dar nada. Verificar con
-`pgrep -af "ollama serve"` y `du -sh ~/.ollama`.
+Los modelos de prueba se borran (`ollama rm`). Si el servicio de Ollama no era
+el permanente de embeddings (`ollama-embed.service`), **`ollama serve` se para
+si no estaba corriendo antes**: dejarlo vivo retiene RAM sin dar nada. Verificar
+con `pgrep -af "ollama serve"` y `du -sh ~/.ollama`; nunca parar el de embeddings.
 
 ### Pitfall propio: `pkill -f <script>` se suicida
 
