@@ -17,7 +17,6 @@ la regla. Están escritas para Hermes, pero la idea sirve para Claude Code, Code
 | [`watchers`](skills/watchers/SKILL.md) | Vigilar RSS, APIs y GitHub sin repetir avisos |
 | [`typesafe-jev`](skills/typesafe-jev/SKILL.md) | Jev: decisiones atómicas baratas en vez de regex frágil |
 | [`process-state-forensics`](skills/process-state-forensics/SKILL.md) | Config correcta pero servicio roto: auditar el proceso vivo |
-| [`autonomous-hardening`](skills/autonomous-hardening/SKILL.md) | Endurecer un agente que no tiene a un humano al lado |
 | [`trajectory-log`](skills/trajectory-log/SKILL.md) | Depurar un turno de agente paso a paso |
 | [`local-llm-vram-tuning`](skills/local-llm-vram-tuning/SKILL.md) | LLM local lento o que no cabe en memoria |
 | [`post-learning-verifier`](skills/post-learning-verifier/SKILL.md) | Medir si el aprendizaje cambió algo de verdad |
