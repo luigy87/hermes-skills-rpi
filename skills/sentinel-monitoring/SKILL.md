@@ -11,6 +11,8 @@ metadata:
 
 # Sentinel Monitoring
 
+> **Vigia de visibilidad GSC (14-oct-2026):** el aviso de impresiones (tier WARNING) se calla si los CLICS de la ventana reciente superan a los de la anterior: 118->29 imp con clics 2->14 era un pico de 53 imp (26-27 sep) saliendo de la ventana sobre una base de ~2 imp/dia, no perdida de visibilidad. Colapso (prev>=300, <=30 %) y caida de clics hablan siempre. Contrato: `tests/suite_sentinel_gsc_veredicto.py` (10 casos, incluye los REALES de septiembre). Antes de declarar «caida» mirar la serie diaria por la API, no solo los dos totales.
+
 Script `no_agent` (0 tokens) que verifica 10 categorías del ecosistema. Silencioso si OK. Entrega solo alertas accionables.
 
 ## Instalación

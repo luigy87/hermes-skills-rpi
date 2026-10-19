@@ -74,14 +74,36 @@ You MUST complete each phase before proceeding to the next.
 
 **Action:** Use `read_file` on the relevant source files. Use `search_files` to find the error string in the codebase.
 
-### 2. Reproduce Consistently
+### 2. Build a Tight, Red-Capable Loop
 
-- Can you trigger it reliably?
-- What are the exact steps?
-- Does it happen every time?
-- If not reproducible → gather more data, don't guess
+The loop is the deliverable of Phase 1. **Tight** = one command, seconds, deterministic.
+**Red-capable** = it goes red on *this* bug and green when the bug is gone. With that, the cause
+falls out; without it, no amount of reading code will save you.
 
-**Action:** Use the `terminal` tool to run the failing test or trigger the bug:
+Ways to build one, in rough order — be aggressive, refuse to give up:
+
+1. Failing test at whatever seam reaches the bug (unit / integration / e2e).
+2. HTTP or curl script against the running service.
+3. CLI invocation with a fixture input, diffed against a known-good snapshot.
+4. Headless browser (Playwright/CDP) asserting on DOM, console or network.
+5. Replay a captured trace: save the real payload/log to disk, feed it through the path isolated.
+6. Throwaway harness: minimal subset of the system, deps mocked, one function call.
+7. Property/fuzz loop: 1000 random inputs, look for the failure mode.
+8. Bisection harness: automate "boot at state X, check" so `git bisect run` works.
+9. Differential loop: same input through old vs new version (or two configs), diff outputs.
+10. Last resort: a script that drives a human, capturing their output back to you.
+
+Then **tighten** it as a product: faster (skip unrelated init), sharper (assert the symptom, not
+"didn't crash"), more deterministic (pin time, seed RNG, isolate fs, freeze network).
+
+Non-deterministic bugs: the goal is a higher **reproduction rate**, not a clean repro. Loop the
+trigger 100×, parallelise, add stress, narrow timing windows. 50 % is debuggable, 1 % is not —
+raise the rate before hypothesising.
+
+**Done when:** you can name ONE command you have ALREADY RUN in this session, with its output
+pasted, that is red for this bug. If you cannot build a loop, say so explicitly, list what you
+tried, and ask for the environment / captured artifact / temporary instrumentation. Do not
+proceed to hypothesise without a loop.
 
 ```bash
 # Run specific failing test
@@ -148,7 +170,7 @@ search_files("variable_name\\s*=", path="src/", file_glob="*.py")
 ### Phase 1 Completion Checklist
 
 - [ ] Error messages fully read and understood
-- [ ] Issue reproduced consistently
+- [ ] **Tight red loop**: one command, already run, output pasted, goes red on this bug
 - [ ] Recent changes identified and reviewed
 - [ ] Evidence gathered (logs, state, data flow)
 - [ ] Problem isolated to specific component/code

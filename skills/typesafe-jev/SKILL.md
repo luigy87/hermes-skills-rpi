@@ -199,6 +199,7 @@ outputs decian 3/7 y 3/6 suprimidos (**9,44M tokens** reales en 4 dias).
 | `jev-skill-router.py` | sugiere ≤1 skill del catálogo (2 llamadas: skim + verify) | a mano / integrable en el prompt |
 | `jev_email.py` | rescata de la papelera lo accionable | `fetch_recent_emails()` de `email-pruner.py` (cron <cron-id>) |
 | `jev-ahorro-report.py` | mide el ahorro REAL contra baseline congelado | a mano |
+| `jev-articulo-review.py` | revisión editorial de artículos CAMBIADOS (answer_first, clear_next_step, specificity, title_fit, meta_fit). Solo AVISA, fail-open, rc 0 siempre. Preguntas tomadas de AgriciDaniel/jev-seo (MIT). ~0,0001 $/artículo | `_jev_review_step()` de `publish-finalize.py` (tras el factcheck, timeout 120 s). Estado: `state/jev-articulo-review.json` (hash por artículo; línea base 184 el 13-oct-2026). Suite: `suite_jev_articulo_review.py` (26) |
 
 **Los crons usan deepseek, NO claude.** Claude es el chat interactivo. Los
 500M tokens del log son de DeepSeek: el ahorro de los gates es de DeepSeek.
@@ -261,6 +262,18 @@ Pitfalls: el primer arranque descarga con timeout y deja blobs `*.incomplete`
 huerfanos (borrarlos); pre-descargar con `snapshot_download(allow_patterns=...)` en
 background y medir despues con `HF_HUB_OFFLINE=1`. El checkpoint trae temperaturas
 invalidas (warning: confidence de choice sin calibrar).
+
+## jev-seo (AgriciDaniel, evaluado 13-oct-2026): NO se instala, se reutilizan sus preguntas
+
+Repo MIT de 3 semanas, código limpio (sin exec, sin ofuscación, solo habla con api.typesafe.ai/PageSpeed/DataForSEO/la web auditada). Rastrea el sitio entero cada vez y usa `jev-latest`; aquí ya hay verificador técnico propio y la versión está fijada. Lo útil eran las preguntas por página (fichero `judgments.md` del repo ajeno, en su carpeta `references`), que viven ahora en `jev-articulo-review.py`.
+
+**Los cortes de jev-seo NO sirven tal cual aquí.** Con score<0.45 / noul<0.50 saltaban señales en 26 de 45 artículos al azar (58 %; `clear_next_step` en el 44 %): ruido que se acaba ignorando. Con 0.30 avisa solo lo claramente bajo. Antes de copiar umbrales de otro proyecto, medirlos sobre una muestra propia al azar (semilla fija) y mirar cuánto avisa.
+
+Trampa del test: una comprobación tipo `"sys.exit" not in cuerpo` saltó por la palabra en un docstring. Comprobar la LLAMADA (`"sys.exit("`), no el texto, y delimitar la función hasta la siguiente `def`, no con una ventana de N caracteres.
+
+## Avisar por BORDE, no por nivel (14-oct-2026)
+
+`jev_triage.py` lee los ULTIMOS 400 EVENTOS de `errors.log`, no una ventana de horas, y el watermark solo callaba una firma 24 h. Pasadas 24 h, los mismos eventos viejos (un 429 de hacia 38 h, ya diagnosticado) se reevaluaban, volvian a hablar como `[ACCION TUYA]` y pagaban otra llamada. Regla: una firma ya evaluada solo vuelve a hablar si aparece un evento POSTERIOR (`ev_ts` en `state/jev-triage-seen.json`; el estado heredado sin `ev_ts` usa `ts`). Si la fecha del evento no se puede leer, habla (mejor ruido que callar una averia). Contrato: `tests/suite_jev_triage_borde.py` (9 ramas, registrada en `run-suite-canal.py`). Al tocar el triaje, probar siempre la rama del evento nuevo, no solo la del silencio.
 
 ## La doc viva manda
 
