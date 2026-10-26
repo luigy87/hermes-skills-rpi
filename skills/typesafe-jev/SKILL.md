@@ -198,6 +198,7 @@ outputs decian 3/7 y 3/6 suprimidos (**9,44M tokens** reales en 4 dias).
 | `jev-gate-nucleo.py` | GATE: NÚCLEO (Opus 5.5) solo arranca si cambia cola / incidente real (Jev noul>=0.6) / feed / inventario / freeze / estado AdSense. Reloj de seguridad: corre al menos cada 3 dias. Fail-open con hora | `monitor` del cron <cron-id> (25-sep-2026) |
 | `jev-skill-router.py` | sugiere ≤1 skill del catálogo (2 llamadas: skim + verify) | a mano / integrable en el prompt |
 | `jev_email.py` | rescata de la papelera lo accionable | `fetch_recent_emails()` de `email-pruner.py` (cron <cron-id>) |
+| `email-triage-backlog.py` | Triaje de TODA la bandeja por REMITENTE con `jev_email.evaluar` (3 muestras/remitente, caché). Jev propone, el código decide; fail-closed (sin Jev nada es BASURA salvo lista conocida). 167 remitentes = 4,5 min la 1ª vez, céntimos | a mano (`plan`/`apply-trash`/`apply-filters`); alimenta `blacklist.json` del cron <cron-id> |
 | `jev-ahorro-report.py` | mide el ahorro REAL contra baseline congelado | a mano |
 | `jev-articulo-review.py` | revisión editorial de artículos CAMBIADOS (answer_first, clear_next_step, specificity, title_fit, meta_fit). Solo AVISA, fail-open, rc 0 siempre. Preguntas tomadas de AgriciDaniel/jev-seo (MIT). ~0,0001 $/artículo | `_jev_review_step()` de `publish-finalize.py` (tras el factcheck, timeout 120 s). Estado: `state/jev-articulo-review.json` (hash por artículo; línea base 184 el 13-oct-2026). Suite: `suite_jev_articulo_review.py` (26) |
 

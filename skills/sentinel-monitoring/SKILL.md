@@ -1,6 +1,6 @@
 ---
 name: sentinel-monitoring
-description: "Silent no_agent monitoring for Hermes ecosystems."
+description: "Use when montas monitorización silenciosa no_agent del ecosistema Hermes. Solo habla cuando algo falla."
 version: 1.0.0
 platforms: [linux]
 metadata:
@@ -63,7 +63,7 @@ Tres invariantes que NO se pueden romper al tocarlo:
   averias ya verificadas sigan alertando.
 
 Metodo, pitfalls y matriz de tests: skill `filtro-guard-diagnostico`,
-Regla 19d + `references/triaje-semantico-system-one.md`.
+Regla 19d + `../filtro-guard-diagnostico/references/triaje-semantico-system-one.md`.
 
 ## Resolver un informe del Sentinel ("soluciona esto")
 

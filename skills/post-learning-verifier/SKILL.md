@@ -1,6 +1,6 @@
 ---
 name: post-learning-verifier
-description: "Mide si el aprendizaje cambio algo; no que existan ficheros."
+description: "Use when compruebas si lo aprendido cambió algo. Mide efecto real (no que existan ficheros) y marca hallazgos sin consumir."
 version: 2.0.0
 tags: [cognitive, learning, verification, telemetry]
 trigger: Cuando se ejecuta el cron job Post-Learning Verifier tras las sesiones de aprendizaje.

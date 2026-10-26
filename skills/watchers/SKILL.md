@@ -1,6 +1,6 @@
 ---
 name: watchers
-description: Poll RSS, JSON APIs, and GitHub with watermark dedup.
+description: "Use when vigilas RSS, APIs JSON o GitHub por novedades. Poll con watermark para no repetir avisos."
 version: 1.0.0
 author: Hermes Agent
 license: MIT

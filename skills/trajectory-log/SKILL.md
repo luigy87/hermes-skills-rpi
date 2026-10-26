@@ -1,6 +1,6 @@
 ---
 name: trajectory-log
-description: "Depurar un turno, cron o loop paso a paso con traj.py."
+description: "Use when depuras un turno, cron o loop paso a paso. Usa traj.py para ver la trayectoria."
 version: 1.0.0
 author: "el usuario (via Hermes)"
 metadata:

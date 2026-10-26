@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: "4-phase root cause debugging: understand bugs before fixing. Umbrella for Python debugpy/pdb and Node.js inspect/CDP tooling."
+description: "Use when hay un bug y vas a arreglarlo. 4 fases de causa raíz antes de tocar; cubre debugpy/pdb y Node inspect/CDP."
 version: 2.0.0
 author: Hermes Agent (adapted from obra/superpowers)
 license: MIT

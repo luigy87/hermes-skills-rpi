@@ -1,6 +1,6 @@
 ---
 name: test-driven-development
-description: "TDD: enforce RED-GREEN-REFACTOR, tests before code. Umbrella for spike (exploratory prototyping) and simplify-code (parallel 3-agent code cleanup)."
+description: "Use when escribes código nuevo o corriges un bug. TDD: RED-GREEN-REFACTOR, tests antes del código; incluye spike y simplify-code."
 version: 1.1.0
 author: Hermes Agent (adapted from obra/superpowers)
 license: MIT

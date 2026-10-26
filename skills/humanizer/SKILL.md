@@ -1,6 +1,6 @@
 ---
 name: humanizer
-description: "Humanize text: strip AI-isms and add real voice."
+description: "Use when un texto suena a IA. Quita muletillas de IA y le devuelve voz propia."
 version: 2.5.1
 author: Siqi Chen (@blader, https://github.com/blader/humanizer), ported by Hermes Agent
 license: MIT
