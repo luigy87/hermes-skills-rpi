@@ -202,12 +202,51 @@ outputs decian 3/7 y 3/6 suprimidos (**9,44M tokens** reales en 4 dias).
 | `jev-ahorro-report.py` | mide el ahorro REAL contra baseline congelado | a mano |
 | `jev-articulo-review.py` | revisión editorial de artículos CAMBIADOS (answer_first, clear_next_step, specificity, title_fit, meta_fit). Solo AVISA, fail-open, rc 0 siempre. Preguntas tomadas de AgriciDaniel/jev-seo (MIT). ~0,0001 $/artículo | `_jev_review_step()` de `publish-finalize.py` (tras el factcheck, timeout 120 s). Estado: `state/jev-articulo-review.json` (hash por artículo; línea base 184 el 13-oct-2026). Suite: `suite_jev_articulo_review.py` (26) |
 
+### Elegir el siguiente gate: se mide, no se intuye
+
+El proximo gate va al cron mas caro **sin** gate, no al que mas ruido hace. Se saca
+cruzando dos ficheros, sin LLM:
+
+```bash
+python3 - <<'EOF'
+import json, collections
+from pathlib import Path
+jobs = json.load(open(Path.home()/'.hermes/cron/jobs.json'))
+if isinstance(jobs, dict) and 'jobs' in jobs: jobs = jobs['jobs']
+if isinstance(jobs, dict): jobs = list(jobs.values())
+jobs = [j for j in jobs if isinstance(j, dict)]          # hay entradas que no son dict
+names = {j.get('id'): (j.get('name') or '')[:38] for j in jobs}
+gate  = {j.get('id'): bool(j.get('monitor_script')) for j in jobs}
+tot, runs = collections.Counter(), collections.Counter()
+for line in (Path.home()/'.hermes/cron/usage_audit.jsonl').read_text(errors='replace').splitlines():
+    try: r = json.loads(line)
+    except Exception: continue
+    jid = r.get('job_id') or r.get('id')
+    if jid: tot[jid] += r.get('total_tokens') or 0; runs[jid] += 1
+print('crons', len(jobs), 'con gate', sum(gate.values()))
+for jid, t in tot.most_common(10):
+    print(f"{t:>13,} {runs[jid]:>4}r gate={'SI' if gate.get(jid) else 'NO'} {jid} {names.get(jid,'?')}")
+EOF
+```
+
+Medido asi (26-oct-2026): 6 de 110 crons con `monitor_script`, y en el top-5 por
+tokens habia crons SIN gate (`obsidian-nightly` era el 4º, >100M tokens). Un gate
+en el cron equivocado no ahorra y añade una superficie donde fallar en silencio.
+
+**El informe de ahorro no cubre todos los gates.** `jev-ahorro-report.py` compara
+contra el baseline congelado de DOS crons (los que lo tienen), asi que su cifra
+es un minimo, no el total: el resto de gates (`content`, `nucleo`, publish) no
+aparecen ahi. Al dar el ahorro, decir cuantos crons cubre la cifra.
+
 **Los crons usan deepseek, NO claude.** Claude es el chat interactivo. Los
 500M tokens del log son de DeepSeek: el ahorro de los gates es de DeepSeek.
 
 Resultados medidos (25-sep-2026, via corregida tras arreglar el medidor):
 - Ahorro REAL acumulado: **9,44M tokens** en 4 dias (learning 3/8 ticks,
   knowledge 3/7). El informe previo decia 0 por el bug de `executions.db`.
+  Con el mismo script, al mes siguiente: **90,3M tokens** y 64 % de ticks
+  suprimidos en learning. La cifra crece sola; lo que hay que citar es el
+  porcentaje de ticks suprimidos y cuantos crons cubre el informe (2 de los 6 gates).
 - El gate de content suprime desde el 23-sep (cuota 0 congelada) sin fallar.
 - El gate de learning suprime 1 de cada 2 ticks (patron estable 3 dias:
   05:00 suprimido, 16:00 arranca). Mecanismo medido: `run-improvement-loop.sh`
