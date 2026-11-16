@@ -1,6 +1,6 @@
 ---
 name: watchers
-description: "Use when vigilas RSS, APIs JSON o GitHub por novedades. Poll con watermark para no repetir avisos."
+description: "Use when vigilas RSS, APIs JSON o GitHub por novedades."
 version: 1.0.0
 author: Hermes Agent
 license: MIT

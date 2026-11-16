@@ -1,6 +1,6 @@
 ---
 name: process-state-forensics
-description: "Use when la config es correcta pero el servicio sigue roto. Audita el proceso vivo, no el fichero de config."
+description: "Use when la config está bien pero el servicio sigue roto."
 version: 1.0.0
 tags: [systemd, debugging, forensics, linux, process, config]
 trigger: Cuando un servicio se comporta mal pero su configuracion parece correcta; cuando un fix "aplicado" no surte efecto; cuando un proceso muere al reiniciar; o al revertir un cambio de configuracion.
@@ -233,29 +233,7 @@ de tu creencia.**
 
 ## Barrer puertos sin tumbar el host
 
-Cuando hace falta demostrar que un servicio esta caido de verdad (y no
-suponerlo desde un cache rancio), el barrido de puertos es legitimo. Lo que
-tumba maquinas pequenas **no es el escaneo: son los forks.** Un
-`nc` por puerto con `xargs -P64` lanza miles de procesos y en un host con poca
-RAM o con un supervisor agresivo se lleva por delante al proceso padre.
-
-Builtin de bash, cero forks:
-
-```bash
-found=""
-for p in $(seq 1024 65535); do
-  (exec 3<>/dev/tcp/127.0.0.1/$p) 2>/dev/null && { found="$found $p"; exec 3<&- 2>/dev/null; }
-done
-echo "ABIERTOS:$found"
-```
-
-Desde otra maquina, el equivalente barato es un `ThreadPoolExecutor` con
-`socket` y `settimeout` corto — hilos, no procesos. Verificado 10-sep-2026:
-los 65.535 puertos en tandas, sin tumbar nada, y el resultado (un unico puerto
-abierto) convirtio una hipotesis en un hecho.
-
-**El valor no es encontrar el puerto: es poder afirmar la ausencia con
-evidencia** en vez de repetir "parece que no responde".
+Escanear puertos de la RPi sin saturarla: `references/barrer-puertos.md`.
 
 ## Higiene de diagnostico
 
@@ -276,54 +254,7 @@ evidencia** en vez de repetir "parece que no responde".
 
 ## Caso: MCP server instalado vía nvm, `hermes mcp test` en falso "✓ Connected" (15-sep-2026)
 
-Instancia directa de la regla capital de este skill, con un giro: la
-herramienta de verificación oficial (`hermes mcp test <name>`) **corre en la
-capa equivocada** — tu shell de terminal, no el proceso gateway real — y por
-eso da capa 2 (config resuelta) cuando hace falta capa 3 (proceso vivo).
-
-**Síntoma**: tras instalar un MCP server (`npm install -g` bajo nvm) y
-configurarlo en `config.yaml`, `hermes mcp test context_mode` da `✓ Connected`
-y lista las 11 tools. El gateway real (el que atiende Telegram) sigue sin
-poder lanzarlo: `~/.hermes/logs/mcp-stderr.log` repite
-`FileNotFoundError: [Errno 2] No such file or directory: 'context-mode'`.
-
-**Por qué el test miente**: `hermes mcp test` hereda TU PATH de sesión
-(incluye `~/.nvm/versions/node/<v>/bin`). El gateway arranca desde el unit
-systemd `hermes-gateway.service`, con un `PATH` fijo de la plantilla interna
-de Hermes — sin el bin de nvm. El binario del MCP es invisible para el
-proceso que de verdad importa.
-
-```bash
-# Capa 2 (miente aquí): hermes mcp test context_mode -> ✓ Connected
-
-# Capa 3 (la verdad): PATH del proceso gateway VIVO, no el tuyo
-PID=$(systemctl --user show hermes-gateway.service -p MainPID --value)
-tr '\0' '\n' < /proc/$PID/environ | grep '^PATH='
-
-# confirmacion cruzada en el log de error real del MCP
-tail -30 ~/.hermes/logs/mcp-stderr.log
-```
-
-**Fix**: el unit `~/.config/systemd/user/hermes-gateway.service` lo REGENERA
-Hermes en cada arranque desde plantilla interna — editarlo directamente se
-pierde. Añadir el PATH completo (con el bin de nvm) como
-`Environment="PATH=..."` en el drop-in
-`~/.config/systemd/user/hermes-gateway.service.d/10-hardening.conf`, que sí
-sobrevive a la regeneración. Reiniciar con el mecanismo externo
-(`touch /tmp/hermes-gw-restart.flag`, recogido por el crontab del sistema —
-NUNCA `systemctl restart` desde dentro del gateway, lo bloquea el lifecycle
-guard). Cierre obligatorio (paso 2 del "anti-patron: dar por bueno un fix sin
-ejercitarlo" de arriba): tras el restart, repetir la lectura de
-`/proc/<PID_NUEVO>/environ` — el PID cambia, comparar contra el PID viejo da
-un falso "sigue roto" — y confirmar que no hay `FileNotFoundError` NUEVOS en
-`mcp-stderr.log` después de la hora del restart.
-
-**Trampa del cron de verificación**: si programas un cron one-shot para
-comprobar el resultado del restart, puede morir a mitad si coincide con el
-propio apagado del gateway ("gateway is shutting down and killed the run").
-No es señal de que el fix falló — es el mismo tipo de falso negativo que
-"probe una vez y no vi el efecto": verificar a mano contra el PID nuevo en
-vez de fiarte del cron, y borrarlo después de usarlo.
+Caso real: `hermes mcp test` da ✓ Connected y el gateway vivo no encuentra el binario (PATH de nvm). Detalle: `references/caso-mcp-nvm-falso-connected.md`.
 
 ## Detalle en references/ (leer solo si aplica)
 
@@ -386,6 +317,79 @@ hermes --provider <proveedor-de-respaldo> -m <modelo-de-respaldo> -z "Responde: 
 ```
 
 Si esa linea no esta en algun guardian, el respaldo es decorativo.
+
+## Cambiar una constante de un plugin NO cambia el proceso vivo
+
+Un plugin de Hermes es codigo Python **importado dentro del proceso del
+gateway**. Editar el `.py` no altera nada hasta que ese proceso reimporta: la
+constante sigue con el valor del arranque, invisible para cualquier `grep` que
+solo mire el fichero.
+
+```bash
+# 1. valor de disco vs valor que corre
+systemctl --user show hermes-gateway.service -p MainPID --value   # PID vivo
+ps -o etime= -p <PID>                                             # dias = lleva asi
+sudo -n tail -1 ~/.hermes/logs/<plugin>.log 2>/dev/null            # linea de arranque con el valor viejo
+
+# 2. recarga ORDENADA (no `restart`): el unit trae ExecReload
+systemctl --user cat hermes-gateway.service | grep ExecReload      # /bin/kill -USR1 $MAINPID
+systemctl --user reload hermes-gateway                             # drena, entrega el turno en curso y reinicia
+```
+
+`reload` manda SIGUSR1: el gateway deja de aceptar turnos nuevos, **entrega la
+respuesta del turno en curso** y se reinicia; `Restart=always` lo levanta. Es la
+via limpia frente a `restart` (lo bloquea el lifecycle guard, y se lleva por
+delante el trabajo en vuelo). No hace falta `systemd-run` con temporizador: el
+reinicio ocurre justo despues de tu respuesta.
+
+**`rc=0` del reload solo dice que systemd acepto la senal.** La prueba es la
+linea de arranque del plugin con el **valor nuevo y un PID distinto**:
+
+```bash
+grep -E 'activo|vigilante' ~/.hermes/logs/<plugin>.log | tail -1
+```
+
+Si no aparece, el plugin no se recargo (o reventó al importar): mirar el journal
+del servicio antes de dar el cambio por aplicado.
+
+### Mejor que recargar: que el valor se ajuste en caliente
+
+Si es un **umbral que el usuario va a querer mover**, no pagues un reinicio por
+cada ajuste. Prioridad `env > fichero de estado > constante`, releido en cada
+uso con cache por `mtime` (un `stat` por llamada) y un comando para cambiarlo:
+
+```python
+FICHERO_UMBRAL = ROOT / "state" / "mi-plugin-umbral"
+# _umbral(): env MI_UMBRAL > state/mi-plugin-umbral > UMBRAL (cache por st_mtime)
+# /miplugin umbral 92  -> escribe el fichero; surte efecto en el siguiente uso
+```
+
+Dos trampas al implementarlo:
+
+- **El interprete del gateway no es el del sistema.** Comprueba el import con ESE
+  binario antes de disenar sobre `config.yaml`:
+
+  ```bash
+  ~/.hermes/tools/python-3.*/bin/python3 -c 'import yaml'
+  ```
+
+  Si no esta, fichero de texto plano en `state/` (lo que hace el patron de arriba).
+- **Un literal repetido se pudre.** Si el umbral aparece como `85` en mensajes,
+  `plugin.yaml` y docstrings, cada ajuste deja textos mintiendo. Leelo siempre
+  de la funcion, y busca el valor viejo en TODO el plugin al terminar (y en
+  `plugin.yaml`), no solo donde esta la comparacion.
+- **Parametriza el test desde el modulo** (`CORTE = g._umbral()`) en vez de
+dejarlo con literales: si no, el siguiente ajuste rompe la suite en silencio o
+  el caso deja de probar el corte. Anade un caso que cambie el valor y compruebe
+  que el corte lo respeta.
+
+### Localizar el control por su EFECTO, no por su numero
+
+Cuando el usuario describe un control por lo que hace ("uno que para tareas al
+85 %"), grepear el numero recorre medio `.hermes` sin exito: el valor vive
+dentro de un plugin con nombre propio. `python3 ~/.hermes/scripts/inventario.py
+limite suscripcion cupo` lo devuelve a la primera, con su cron/plugin asociado.
+Busca la palabra del dominio (cupo, limite, pausa) antes que la cifra.
 
 ## Anti-patron: dar por bueno un fix sin ejercitarlo
 

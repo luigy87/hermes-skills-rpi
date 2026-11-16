@@ -1,6 +1,6 @@
 ---
 name: sentinel-monitoring
-description: "Use when montas monitorización silenciosa no_agent del ecosistema Hermes. Solo habla cuando algo falla."
+description: "Use when montas vigilancia no_agent que solo habla si falla."
 version: 1.0.0
 platforms: [linux]
 metadata:

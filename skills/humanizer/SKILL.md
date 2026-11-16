@@ -1,6 +1,6 @@
 ---
 name: humanizer
-description: "Use when un texto suena a IA. Quita muletillas de IA y le devuelve voz propia."
+description: "Use when un texto suena a IA y necesita voz propia."
 version: 2.5.1
 author: Siqi Chen (@blader, https://github.com/blader/humanizer), ported by Hermes Agent
 license: MIT

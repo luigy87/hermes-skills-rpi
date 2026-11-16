@@ -1,6 +1,6 @@
 ---
 name: test-driven-development
-description: "Use when escribes código nuevo o corriges un bug. TDD: RED-GREEN-REFACTOR, tests antes del código; incluye spike y simplify-code."
+description: "Use when escribes código nuevo o corriges un bug (TDD)."
 version: 1.1.0
 author: Hermes Agent (adapted from obra/superpowers)
 license: MIT

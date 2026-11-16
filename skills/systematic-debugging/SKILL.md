@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: "Use when hay un bug y vas a arreglarlo. 4 fases de causa raíz antes de tocar; cubre debugpy/pdb y Node inspect/CDP."
+description: "Use when hay un bug y vas a arreglarlo: causa raíz."
 version: 2.0.0
 author: Hermes Agent (adapted from obra/superpowers)
 license: MIT

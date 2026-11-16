@@ -334,3 +334,8 @@ Mintlify sirve markdown anadiendo `.md` a cualquier ruta:
 `https://docs.typesafe.ai/concepts/how-to-build-with-system-one.md`.
 Antes de disenar un flujo nuevo, leer el cookbook mas parecido: suele proponer
 una descomposicion mejor que un clasificador generico.
+
+## Más detalle en references/ (leer solo si aplica)
+
+- [Gate de contenido](references/gate-contenido.md)  — al crear o depurar un gate que devuelve «nada»
+- [Integraciones Jev](references/integraciones-22-sep.md)  — jev_email y el router archivado
